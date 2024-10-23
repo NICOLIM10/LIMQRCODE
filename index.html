@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIM QR Generator with PyScript</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: #0D1B2A;
+            padding: 40px;
+            color: #E0E1DD;
+        }
+        .container {
+            border: 3px solid #1B2631;
+            border-radius: 15px;
+            padding: 50px;
+            background-color: #1F4E79;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            display: inline-block;
+            width: 450px;
+        }
+        h1 {
+            color: #F0F3BD;
+            margin-bottom: 10px;
+            font-size: 26px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            border: 1px solid #B0BEC5;
+            border-radius: 8px;
+            font-size: 16px;
+            background-color: #E0E1DD;
+            color: #333;
+        }
+        .color-picker-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .color-picker-button {
+            position: relative;
+            flex-grow: 1;
+            margin-right: 10px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            background-color: #B0BEC5;
+            cursor: pointer;
+            color: #333;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .color-picker-button:hover {
+            background-color: #A0B2B6;
+        }
+        button {
+            padding: 12px 20px;
+            background-color: #1B2631;
+            color: #E0E1DD;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #2D3748;
+        }
+        #qr-container {
+            background-color: #F0F3BD;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            position: relative;
+        }
+        #qr-image {
+            margin-top: 20px;
+        }
+        #logo {
+            width: 70px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            opacity: 0.8;
+        }
+        #download-btn {
+            display: none;
+            margin-top: 10px;
+        }
+        .color-input {
+            display: none;
+        }
+        .transparent-background-reminder {
+            font-size: 14px;
+            color: #FF6F61;
+            margin-top: 10px;
+            font-style: italic;
+        }
+        /* New Styles for Top Image */
+        #top-image {
+            width: 60%;
+            height: auto;
+            margin-bottom: 10px;
+        }
+    </style>
+    <!-- Include PyScript -->
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <img id="top-image" src="image (24).png" alt="Top Image">
+        <h1>QR Code Generator</h1>
+        <input type="text" id="text-input" placeholder="Enter text for QR code">
+        
+        <div class="color-picker-container"> 
+            <button class="color-picker-button" id="foreground-button" style="background-color: #000000;">Foreground Color</button>
+            <input type="color" id="foreground-color" class="color-input" value="#000000">
+        </div>
+        
+        <div class="color-picker-container">
+            <button class="color-picker-button" id="background-button" style="background-color: #FFFFFF;">Background Color</button>
+            <input type="color" id="background-color" class="color-input" value="#FFFFFF">
+        </div>
+        
+        <input type="file" id="logo-upload" accept="image/*">
+        <button id="insert-logo-btn">Insert Logo</button>
+        
+        <p class="transparent-background-reminder">*Please upload a logo with a transparent background to read the QR.</p>
+
+        <button id="generate-btn">Generate QR Code</button>
+        <div id="qr-container">
+            <div id="qr-image"></div>
+            <img id="logo" src="" alt="Logo" style="display:none;"/>
+            <a id="download-btn" href="#" download="qr-code.png">Download QR Code</a>
+        </div>
+        <button id="restart-btn" style="display: none;">Regenerate</button>
+    </div>
+
+    <script>
+        // Color picker button functionality
+        document.querySelectorAll('.color-picker-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const colorInput = this.nextElementSibling;
+                colorInput.click();
+            });
+        });
+
+        // Color input change event
+        document.getElementById('foreground-color').addEventListener('input', function() {
+            document.getElementById('foreground-button').style.backgroundColor = this.value;
+        });
+
+        document.getElementById('background-color').addEventListener('input', function() {
+            document.getElementById('background-button').style.backgroundColor = this.value;
+        });
+
+        document.getElementById('insert-logo-btn').addEventListener('click', function () {
+            const fileInput = document.getElementById('logo-upload');
+            const logo = document.getElementById('logo');
+            
+            if (fileInput.files.length > 0) {
+                const reader = new FileReader();
+                
+                reader.onload = function (e) {
+                    logo.src = e.target.result;
+                    logo.style.display = 'block';
+                };
+                
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                alert("Please upload a logo.");
+            }
+        });
+
+        document.getElementById('generate-btn').addEventListener('click', function () {
+            let inputText = document.getElementById('text-input').value;
+            
+            if (!inputText) {
+                alert("Please enter text to generate QR code.");
+                return;
+            }
+
+            // Change input to "IMISSYOU" if input is "BOSS"
+            if (inputText.toUpperCase() === "BOSS") {
+                inputText = "IMISSYOU";
+            }
+
+            // Get colors from inputs
+            const foregroundColor = document.getElementById('foreground-color').value.replace('#', ''); // Remove #
+            const backgroundColor = document.getElementById('background-color').value.replace('#', ''); // Remove #
+
+            // Check if foreground and background colors are the same
+            if (foregroundColor === backgroundColor) {
+                alert("Foreground and background colors cannot be the same. Please choose different colors.");
+                return;
+            }
+
+            // QR Code API URL with colors
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(inputText)}&color=${foregroundColor}&bgcolor=${backgroundColor}`;
+
+            // Display QR Code image
+            const qrImageDiv = document.getElementById('qr-image');
+            qrImageDiv.innerHTML = `<img src="${qrApiUrl}" alt="QR Code">`;
+
+            // Set the download link
+            const downloadBtn = document.getElementById('download-btn');
+            downloadBtn.href = qrApiUrl; // Set href to QR code image URL
+            downloadBtn.style.display = 'inline-block'; // Show download button
+
+            // Show QR code container and restart button
+            document.getElementById('qr-container').style.display = 'block';
+            document.getElementById('restart-btn').style.display = 'inline-block';
+        });
+
+        // Restart button functionality
+        document.getElementById('restart-btn').addEventListener('click', function () {
+            document.getElementById('text-input').value = ''; // Clear input
+            document.getElementById('qr-image').innerHTML = ''; // Clear QR code
+            document.getElementById('logo').style.display = 'none'; // Hide logo
+            document.getElementById('download-btn').style.display = 'none'; // Hide download button
+            document.getElementById('qr-container').style.display = 'none'; // Hide QR container
+            this.style.display = 'none'; // Hide restart button
+            document.getElementById('foreground-color').value = '#000000'; // Reset foreground color
+            document.getElementById('background-color').value = '#FFFFFF'; // Reset background color
+            document.getElementById('foreground-button').style.backgroundColor = '#000000'; // Reset button color
+            document.getElementById('background-button').style.backgroundColor = '#FFFFFF'; // Reset button color
+        });
+    </script>
+</body>
+</html>
